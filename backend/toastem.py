@@ -1,5 +1,6 @@
 from fastapi import FastAPI, HTTPException, Body
 from fastapi.middleware.cors import CORSMiddleware
+from datetime import datetime, timedelta
 import requests
 import logging
 import numpy as np
@@ -163,6 +164,7 @@ def simulate(customers, menu_items, combos, prices):
         customers_purchases.append(purchased_items)
 
     return total_profit, total_demand, customers_purchases
+
 
 def compute_elasticity(baseline_demand, new_demand, baseline_price, new_price):
     """

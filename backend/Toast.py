@@ -1,4 +1,5 @@
 from MenuClasses import MenuItem, Combo, OrderItem, OrderCombo, Order
+from datetime import datetime, timedelta
 import random
 
 
@@ -65,7 +66,13 @@ def generate_fake_combos(menu_items):
 # Generate fake orders
 def generate_fake_orders(menu_items, combos):
     orders = []
+    now = datetime.now()
+
     for _ in range(random.randint(25, 50)):
+        # Generate a random timestamp within the last 30 days
+        random_offset = random.randint(0, 30 * 24 * 60 * 60)  # Up to 30 days in the past
+        order_time = now - timedelta(seconds=random_offset)
+
         order_items = [
             OrderItem(
                 dish_id=item.dish_id,
@@ -90,6 +97,8 @@ def generate_fake_orders(menu_items, combos):
             combos=order_combos if order_combos else None,
             guest_name=random.choice(["John Doe", "Jane Smith", "Alex Johnson", "Wei Zhang", "Ling Chen"]),
             delivery_address=random.choice(["123 Main St", "456 Elm St", "789 Maple Ave", None]),
+            order_timestamp=order_time.isoformat(),  # ✅ Minimal change: Add timestamp
         )
         orders.append(order)
+
     return orders

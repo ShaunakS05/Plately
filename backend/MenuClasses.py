@@ -1,5 +1,6 @@
 from pydantic import BaseModel
 from typing import Optional, List
+from datetime import datetime
 
 class MenuItem(BaseModel):
     dish_id: str
@@ -31,3 +32,4 @@ class Order(BaseModel):
     combos: Optional[List[OrderCombo]] = None
     guest_name: Optional[str] = None
     delivery_address: Optional[str] = None
+    order_timestamp: Optional[str] = None
