@@ -351,3 +351,11 @@ def get_order_by_id(order_id: str):
 def create_order(order: Order):
     orders.append(order)
     return {"message": "Order created successfully", "order_id": order.order_id}
+
+@app.get("/order-timestamps", tags=["Orders"])
+def get_order_timestamps():
+    """
+    Returns only the order timestamps from all orders.
+    """
+    return {"timestamps": [order.order_timestamp for order in orders if order.order_timestamp]}
+

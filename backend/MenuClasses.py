@@ -33,3 +33,5 @@ class Order(BaseModel):
     guest_name: Optional[str] = None
     delivery_address: Optional[str] = None
     order_timestamp: Optional[str] = None
+    season: Optional[str] = None
+    day: Optional[str] = None
