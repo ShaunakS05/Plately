@@ -8,7 +8,7 @@ from customer import simulate
 import random
 import itertools
 import logging
-from backend.ToastData import generate_fake_combos, generate_fake_menu, generate_fake_orders
+from ToastData import generate_fake_combos, generate_fake_menu, generate_fake_orders
 from MenuClasses import Order
 
 
