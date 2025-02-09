@@ -77,7 +77,7 @@ def get_season(month):
     return "Unkown"
 
 # Generate fake orders
-def generate_fake_orders(menu_items, combos, num_orders=55000):
+def generate_fake_orders(menu_items, combos, num_orders=10000):
     """
     Generate a list of fake orders for testing and analytics.
     
