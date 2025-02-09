@@ -277,34 +277,34 @@ def scenario_analysis(
     """
     try:
         # --- Fetch menu and combos ---
-        menu_resp = requests.get(f"{TOAST_API_BASE_URL}/menu")
-        menu_resp.raise_for_status()
-        menu_items = menu_resp.json()
+        # menu_resp = requests.get(f"{TOAST_API_BASE_URL}/menu")
+        # menu_resp.raise_for_status()
+        # menu_items = menu_resp.json()
 
-        combos_resp = requests.get(f"{TOAST_API_BASE_URL}/combos")
-        combos_resp.raise_for_status()
-        combos = combos_resp.json()
+        # combos_resp = requests.get(f"{TOAST_API_BASE_URL}/combos")
+        # combos_resp.raise_for_status()
+        # combos = combos_resp.json()
 
         # Compute baseline utilities
         item_sales = np.array([m.quantity_sold for m in menu_items])
         item_baseline_util = np.log(item_sales + 1)
         item_baseline_util = item_baseline_util - np.mean(item_baseline_util)
         for i, m in enumerate(menu_items):
-            m["baseline_utility"] = item_baseline_util[i]
+            m.baseline_utility = item_baseline_util[i]
 
         if len(combos) > 0:
-            combo_sales = np.array([c["quantity_sold"] for c in combos])
+            combo_sales = np.array([c.quantity_sold for c in combos])
             combo_baseline_util = np.log(combo_sales + 1)
             combo_baseline_util = combo_baseline_util - np.mean(combo_baseline_util)
             for i, c in enumerate(combos):
-                c["baseline_utility"] = combo_baseline_util[i]
+                c.baseline_utility = combo_baseline_util[i]
         else:
             for c in combos:
-                c["baseline_utility"] = 0.0
+                c.baseline_utility = 0.0
 
         # Base prices
-        base_item_prices = {m["dish_id"]: m["price"] for m in menu_items}
-        base_combo_prices = {c["combo_name"]: c["price"] for c in combos}
+        base_item_prices = {m.dish_id: m.price for m in menu_items}
+        base_combo_prices = {c.combo_name: c.price for c in combos}
         base_prices = {**base_item_prices, **base_combo_prices}
 
         # Apply multipliers
@@ -322,7 +322,7 @@ def scenario_analysis(
         # Return numeric results
         scenario_result = []
         for m in menu_items:
-            pid = m["dish_id"]
+            pid = m.dish_id
             price = scenario_prices[pid]
             scenario_result.append({
                 "dish_id": pid,
@@ -331,7 +331,7 @@ def scenario_analysis(
                 "revenue": round(price * total_demand[pid], 2)
             })
         for c in combos:
-            pid = c["combo_name"]
+            pid = c.combo_name
             price = scenario_prices[pid]
             scenario_result.append({
                 "combo_name": pid,
