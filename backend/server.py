@@ -1,3 +1,4 @@
+# server.py
 from fastapi import FastAPI, HTTPException, Body
 from fastapi.middleware.cors import CORSMiddleware
 import numpy as np
@@ -10,20 +11,16 @@ import itertools
 import logging
 from ToastData import generate_fake_combos, generate_fake_menu, generate_fake_orders, fetch_menu_items, fetch_combos, calculate_heat_scores_d3
 from MenuClasses import Order
-import time, asyncio, requests, logging
+import time, asyncio
 from contextlib import asynccontextmanager
 from fastapi.responses import JSONResponse
 from fastapi.encoders import jsonable_encoder
-
-
-
-
-
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
 TOAST_API_BASE_URL = "http://127.0.0.1:8001"
+
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     timeout_seconds = 10
@@ -43,7 +40,6 @@ async def lifespan(app: FastAPI):
     
     yield
 
-
 app = FastAPI(lifespan=lifespan)
 
 app.add_middleware(
@@ -54,9 +50,10 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+# If using OpenAI, provide your API key here
 openai.api_key = ""
 
-
+# Generate or fetch initial data
 menu_items = generate_fake_menu()
 combos = generate_fake_combos(menu_items)
 orders = generate_fake_orders(menu_items, combos)
@@ -81,10 +78,6 @@ def optimize_prices():
         menu_items = fetch_menu_items()
         combos = fetch_combos()
 
-        # We won't directly use orders here but ensure they exist
-        # orders_resp = requests.get(f"{TOAST_API_BASE_URL}/orders")
-        # orders_resp.raise_for_status()
-
         # --- 2) Compute baseline utilities ---
         item_sales = np.array([m.quantity_sold for m in menu_items])
         item_baseline_util = np.log(item_sales + 1)
@@ -93,7 +86,6 @@ def optimize_prices():
         for i, m in enumerate(menu_items):
             m.baseline_utility = item_baseline_util[i]
 
-        # Combos baseline utilities
         if len(combos) > 0:
             combo_sales = np.array([c.quantity_sold for c in combos])
             combo_baseline_util = np.log(combo_sales + 1)
@@ -109,7 +101,7 @@ def optimize_prices():
         base_combo_prices = {c.combo_name: c.price for c in combos}
         base_prices = {**base_item_prices, **base_combo_prices}
 
-        # We'll do a baseline simulation to compare
+        # Baseline simulation
         baseline_customers = create_customers()
         baseline_profit, baseline_demand, _ = simulate(baseline_customers, menu_items, combos, base_prices)
 
@@ -124,7 +116,6 @@ def optimize_prices():
                 multiplier = random.uniform(0.7, 1.3)
                 trial_prices[pid] = base_prices[pid] * multiplier
 
-            # Fresh set of customers for each simulation
             trial_customers = create_customers()
             total_profit, total_demand, _ = simulate(trial_customers, menu_items, combos, trial_prices)
             if total_profit > best_profit:
@@ -135,7 +126,7 @@ def optimize_prices():
         if best_prices is None:
             raise HTTPException(status_code=500, detail="No optimal price found")
 
-        # --- 4) Final simulation & co-occurrence analysis with best prices ---
+        # --- 4) Final simulation & co-occurrence analysis ---
         final_customers = create_customers()
         final_profit, final_demand, customers_purchases = simulate(final_customers, menu_items, combos, best_prices)
 
@@ -168,14 +159,13 @@ def optimize_prices():
             demand = final_demand[pid] if pid in final_demand else 0
             profit = (opt_price - m.cost) * demand
 
-            # Compute elasticity from baseline scenario
+            # Compute elasticity
             base_q = baseline_demand.get(pid, 0)
             new_q = demand
             base_p = curr_price
             new_p = opt_price
             elasticity = compute_elasticity(base_q, new_q, base_p, new_p)
 
-            # Simple label for elasticity
             elasticity_label = ""
             if elasticity is not None:
                 if abs(elasticity) < 1:
@@ -185,12 +175,10 @@ def optimize_prices():
             else:
                 elasticity_label = "Not enough data / N/A"
 
-            # Build explanation snippet for each item
             reason_snippet = (
                 f"Item {m.name} (ID: {pid}) changed from ${curr_price:.2f} to ${opt_price:.2f}. "
                 f"Demand changed from {base_q} to {new_q}, leading to an elasticity of {elasticity}. "
-                f"This indicates {elasticity_label}. "
-                f"Profit impact: ${profit:.2f}."
+                f"This indicates {elasticity_label}. Profit impact: ${profit:.2f}."
             )
 
             explanation_details.append(reason_snippet)
@@ -205,7 +193,6 @@ def optimize_prices():
                 "elasticity": elasticity if elasticity else None
             })
 
-        # Summarize co-occurrence pattern
         if best_pair is not None:
             itemA = next(x for x in menu_items if x.dish_id == best_pair[0])
             itemB = next(x for x in menu_items if x.dish_id == best_pair[1])
@@ -213,8 +200,6 @@ def optimize_prices():
         else:
             pair_info = "No significant co-occurrence patterns were found."
 
-        # Prepare prompt for OpenAI
-        # We incorporate some of the economics language and rationale from the random search approach.
         prompt = f"""
 You are an expert restaurant data analyst. We have just optimized our menu item prices using a combination of
 marginal analysis and random search. Below are key facts:
@@ -253,7 +238,7 @@ Explain to a restaurant manager (in simple terms) why these changes were made, f
     except Exception as e:
         logger.exception("Unexpected Error")
         raise HTTPException(status_code=500, detail=f"An unexpected error occurred: {e}")
-    
+
 @app.post("/scenario-analysis")
 def scenario_analysis(
     custom_price_factors: dict = Body(
@@ -276,15 +261,6 @@ def scenario_analysis(
       }
     """
     try:
-        # --- Fetch menu and combos ---
-        # menu_resp = requests.get(f"{TOAST_API_BASE_URL}/menu")
-        # menu_resp.raise_for_status()
-        # menu_items = menu_resp.json()
-
-        # combos_resp = requests.get(f"{TOAST_API_BASE_URL}/combos")
-        # combos_resp.raise_for_status()
-        # combos = combos_resp.json()
-
         # Compute baseline utilities
         item_sales = np.array([m.quantity_sold for m in menu_items])
         item_baseline_util = np.log(item_sales + 1)
@@ -315,11 +291,11 @@ def scenario_analysis(
             else:
                 scenario_prices[pid] = base_price
 
-        # --- Simulate scenario ---
+        # Simulate scenario
         scenario_customers = create_customers()
         total_profit, total_demand, _ = simulate(scenario_customers, menu_items, combos, scenario_prices)
 
-        # Return numeric results
+        # Build response
         scenario_result = []
         for m in menu_items:
             pid = m.dish_id
@@ -348,7 +324,6 @@ def scenario_analysis(
     except Exception as e:
         logger.exception("Unexpected Error in scenario_analysis")
         raise HTTPException(status_code=500, detail=f"An unexpected error occurred: {e}")
-    
 
 @app.get("/menu")
 def get_menu():
@@ -372,8 +347,25 @@ def get_order_by_id(order_id: str):
             return order
     raise HTTPException(status_code=404, detail="Order not found")
 
+# ---------------- NEW create_order with validation & auto-generated ID ----------------
 @app.post("/orders")
 def create_order(order: Order):
+    # Validate each item
+    for item in order.items:
+        if not any(m.dish_id == item.dish_id for m in menu_items):
+            raise HTTPException(status_code=400, detail=f"Dish ID {item.dish_id} not found in menu.")
+    
+    # Validate each combo
+    if order.combos:
+        for c in order.combos:
+            if not any(combo.combo_name == c.combo_name for combo in combos):
+                raise HTTPException(status_code=400, detail=f"Combo {c.combo_name} not found.")
+
+    # Optionally generate an order ID if not provided
+    if not order.order_id or order.order_id.strip() == "":
+        order_id = f"ORDER{random.randint(10000,99999)}"
+        order.order_id = order_id
+
     orders.append(order)
     return {"message": "Order created successfully", "order_id": order.order_id}
 
@@ -401,3 +393,72 @@ def get_orders_by_day(day: str):
 def get_heatscores(menu_item_id: str):
     data = calculate_heat_scores_d3(menu_item_id, orders)
     return JSONResponse(content=data)
+
+# ---------------- NEW endpoint to track the most popular item combinations ----------------
+@app.get("/combo-popularity")
+def get_combo_popularity(min_size: int = 2, max_size: int = 2, top_k: int = 5):
+    """
+    Analyze all orders, look at the co-occurrence of items, and return the most popular 
+    combos of size between `min_size` and `max_size`. Default is pairs only (2 to 2).
+
+    Query params:
+    - min_size: minimum combo size (default=2)
+    - max_size: maximum combo size (default=2)
+    - top_k: how many combos to return (default=5)
+
+    Returns a JSON object like:
+      {
+        "top_combos": [
+          {"combo_items": ["AP001", "EN005"], "popularityScore": 45},
+          ...
+        ],
+        "min_size": 2,
+        "max_size": 2,
+        "top_k": 5
+      }
+    """
+    from collections import Counter
+    import itertools
+
+    combo_counter = Counter()
+
+    for order in orders:
+        # Gather dish_ids from the items, factoring in quantity
+        dish_ids_in_order = []
+        for order_item in order.items:
+            dish_ids_in_order.extend([order_item.dish_id] * order_item.quantity)
+
+        # If combos are present, expand those too
+        if order.combos:
+            for c in order.combos:
+                matched_combo = next((x for x in combos if x.combo_name == c.combo_name), None)
+                if matched_combo:
+                    for _ in range(c.quantity):
+                        dish_ids_in_order.extend(matched_combo.items)
+
+        # Skip if fewer than min_size total items
+        if len(dish_ids_in_order) < min_size:
+            continue
+
+        # For each combination size from min_size up to max_size
+        for combo_size in range(min_size, max_size + 1):
+            # Sort so that the same combos appear in a canonical order
+            for combo_tuple in itertools.combinations(sorted(dish_ids_in_order), combo_size):
+                combo_counter[frozenset(combo_tuple)] += 1
+
+    # Sort combos by frequency (descending)
+    most_common = combo_counter.most_common(top_k)
+
+    results = []
+    for combo_set, count in most_common:
+        results.append({
+            "combo_items": list(combo_set),
+            "popularityScore": count
+        })
+
+    return {
+        "top_combos": results,
+        "min_size": min_size,
+        "max_size": max_size,
+        "top_k": top_k
+    }
