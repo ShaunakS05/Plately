@@ -356,7 +356,10 @@ def get_combos():
 
 @app.get("/orders")
 def get_orders():
-    return orders
+    """
+    Return the 50 fake orders.
+    """
+    return JSONResponse(content=jsonable_encoder(orders))
 
 @app.get("/orders/{order_id}")
 def get_order_by_id(order_id: str):
@@ -372,54 +375,25 @@ def create_order(order: Order):
 
 @app.get("/order-timestamps", tags=["Orders"])
 def get_order_timestamps():
-    """
-    Returns only the order timestamps from all orders.
-    """
     return {"timestamps": [order.order_timestamp for order in orders if order.order_timestamp]}
 
 @app.get("/orders/season/{season}", tags=["Orders"])
 def get_orders_by_season(season: str):
-    """
-    Get all orders for a specific season (Winter, Spring, Summer, Fall).
-    Example: /orders/season/Winter
-    """
-    season = season.capitalize()  # Ensure first letter is uppercase
+    season = season.capitalize()
     filtered_orders = [order for order in orders if order.season == season]
-
     if not filtered_orders:
         raise HTTPException(status_code=404, detail=f"No orders found for season: {season}")
-
     return {"season": season, "orders": filtered_orders}
-
 
 @app.get("/orders/day/{day}", tags=["Orders"])
 def get_orders_by_day(day: str):
-    """
-    Get all orders for a specific day of the week (Monday, Tuesday, etc.).
-    Example: /orders/day/Monday
-    """
-    day = day.capitalize()  # Ensure correct capitalization
-    filtered_orders = [order for order in orders if order.day_of_week == day]
-
+    day = day.capitalize()
+    filtered_orders = [order for order in orders if order.day == day]
     if not filtered_orders:
         raise HTTPException(status_code=404, detail=f"No orders found for day: {day}")
-
     return {"day": day, "orders": filtered_orders}
-
-@app.get("/orders")
-def get_orders():
-    """
-    API endpoint to return 50 fake orders.
-    """
-    orders = generate_fake_orders(menu_items, combos, num_orders=50)
-    # Use jsonable_encoder to convert our custom objects into JSON-serializable types.
-    return JSONResponse(content=jsonable_encoder(orders))
 
 @app.get("/heatscores/{menu_item_id}")
 def get_heatscores(menu_item_id: str):
-    """
-    API endpoint to return the D3-formatted heat scores for the given menu item.
-    """
     data = calculate_heat_scores_d3(menu_item_id)
     return JSONResponse(content=data)
-
