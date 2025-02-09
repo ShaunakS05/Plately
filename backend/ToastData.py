@@ -68,18 +68,31 @@ def generate_fake_combos(menu_items):
         Combo(combo_name="Family Special", items=[menu_items[2].dish_id, menu_items[4].dish_id, menu_items[9].dish_id], price=30.00, quantity_sold=random.randint(30, 60)),
     ]
 
-SEASONS = { 
-    "Winter": [12,1,2],
-    "Spring": [3,4,5],
-    "Summer": [6,7,8],
-    "Fall": [9,10,11]
-}
+# SEASONS = { 
+#     "Winter": [12,1,2],
+#     "Spring": [3,4,5],
+#     "Summer": [6,7,8],
+#     "Fall": [9,10,11]
+# }
+
+# def get_season(month):
+#     for season, months in SEASONS.items():
+#         if month in months:
+#             return season
+#     return "Unkown"
 
 def get_season(month):
-    for season, months in SEASONS.items():
-        if month in months:
-            return season
-    return "Unkown"
+    if(month == 1 or month == 2 or month == 12):
+        return "Winter"
+    elif(month == 3 or month == 4 or month == 5):
+        return "Spring"
+    elif(month == 6 or month == 7 or month == 8):
+        return "Summer"
+    elif(month == 9 or month == 10 or month == 11):
+        return "Fall"
+    logging.warning(f"Unknown month {month} detected in get_season(). Returning 'Unknown'.")
+    return "Unknown"  # ✅ Fix the typo and add a log warning
+
 
 # Generate fake orders
 def generate_fake_orders(menu_items, combos, num_orders=1000):
@@ -118,6 +131,7 @@ def generate_fake_orders(menu_items, combos, num_orders=1000):
         random_hour = random.randint(11, 23)
         random_minute = random.randint(0, 59)
         random_second = random.randint(0, 59)
+        random_month = random.randint(1,12)
 
         # Build the date/time (subtracting 'day_offset' days from 'now')
         random_date = (now - timedelta(days=day_offset)).date()
@@ -131,7 +145,10 @@ def generate_fake_orders(menu_items, combos, num_orders=1000):
         )
 
         # 3. Determine season and day of the week
-        order_season = get_season(order_time.month)
+        order_season = get_season(random_month)
+        if order_season == "Unknown":
+            logging.warning(f"Order generated with unknown season. Order timestamp: {order_time}")
+
         order_day = order_time.strftime("%A")  # Monday, Tuesday, etc.
 
         # 4. Randomly select items
@@ -166,12 +183,13 @@ def generate_fake_orders(menu_items, combos, num_orders=1000):
             guest_name=random.choice(possible_guest_names),
             delivery_address=random.choice(possible_addresses),
             order_timestamp=order_time.isoformat(),
-            season=order_season,
+            season=order_season,  # ✅ Fixed: Now properly assigned
             day=order_day
         )
         orders.append(order)
 
     return orders
+
 
 def fetch_menu_items():
     try:
