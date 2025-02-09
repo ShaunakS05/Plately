@@ -9,12 +9,14 @@ class MenuItem(BaseModel):
     cost: float
     quantity_sold: int
     portion_size: int
+    baseline_utility: Optional[float] = None
 
 class Combo(BaseModel):
     combo_name: str
     items: List[str]
     price: float
     quantity_sold: int
+    baseline_utility: Optional[float] = None
 
 class OrderItem(BaseModel):
     dish_id: str

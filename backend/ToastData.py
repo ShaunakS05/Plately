@@ -1,7 +1,10 @@
 from MenuClasses import MenuItem, Combo, OrderItem, OrderCombo, Order
 from datetime import datetime, timedelta
-import random
+import random, requests
+import logging
 
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
 
 menu_categories = {
     "Appetizers": [
@@ -167,3 +170,24 @@ def generate_fake_orders(menu_items, combos, num_orders=1000):
         orders.append(order)
 
     return orders
+
+def fetch_menu_items():
+    try:
+        response = requests.get(f"{TOAST_API_BASE_URL}/menu", timeout=5)
+        response.raise_for_status()
+        data = response.json()
+        return [MenuItem.model_validate(m) for m in data]
+    except Exception as e:
+        logger.warning("Failed to fetch menu from Toast API (%s). Using local fake menu data.", e)
+        return generate_fake_menu()
+
+def fetch_combos():
+    try:
+        response = requests.get(f"{TOAST_API_BASE_URL}/combos", timeout=5)
+        response.raise_for_status()
+        return response.json()
+    except Exception as e:
+        logger.warning("Failed to fetch combos from Toast API (%s). Using local fake combos data.", e)
+        # If generate_fake_combos needs menu_items, you might call fetch_menu_items() first.
+        return generate_fake_combos(fetch_menu_items())
+

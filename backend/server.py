@@ -8,12 +8,39 @@ from customer import simulate
 import random
 import itertools
 import logging
-from ToastData import generate_fake_combos, generate_fake_menu, generate_fake_orders
+from ToastData import generate_fake_combos, generate_fake_menu, generate_fake_orders, fetch_menu_items, fetch_combos
 from MenuClasses import Order
+import time, asyncio, requests, logging
+from contextlib import asynccontextmanager
 
 
 
-app = FastAPI()
+
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
+
+TOAST_API_BASE_URL = "http://127.0.0.1:8001"
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    timeout_seconds = 10
+    start_time = time.time()
+    while True:
+        try:
+            response = requests.get(f"{TOAST_API_BASE_URL}/menu", timeout=3)
+            response.raise_for_status()
+            logger.info("Toast API endpoint is running")
+            break
+        except Exception as e:
+            logger.warning("Toast API endpoint not reachable yet, retrying... (%s)", e)
+        if time.time() - start_time > timeout_seconds:
+            logger.error("Failed to connect to Toast API endpoint after %s seconds.", timeout_seconds)
+            break
+        await asyncio.sleep(1)
+    
+    yield
+
+
+app = FastAPI(lifespan=lifespan)
 
 app.add_middleware(
     CORSMiddleware,
@@ -23,11 +50,7 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-logging.basicConfig(level=logging.INFO)
-logger = logging.getLogger(__name__)
-
-TOAST_API_BASE_URL = "http://127.0.0.1:8001"
-openai.api_key = "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"
+openai.api_key = ""
 
 
 menu_items = generate_fake_menu()
@@ -51,40 +74,35 @@ def optimize_prices():
     """
     try:
         # --- 1) Fetch data ---
-        menu_resp = requests.get(f"{TOAST_API_BASE_URL}/menu")
-        menu_resp.raise_for_status()
-        menu_items = menu_resp.json()
-
-        combos_resp = requests.get(f"{TOAST_API_BASE_URL}/combos")
-        combos_resp.raise_for_status()
-        combos = combos_resp.json()
+        menu_items = fetch_menu_items()
+        combos = fetch_combos()
 
         # We won't directly use orders here but ensure they exist
-        orders_resp = requests.get(f"{TOAST_API_BASE_URL}/orders")
-        orders_resp.raise_for_status()
+        # orders_resp = requests.get(f"{TOAST_API_BASE_URL}/orders")
+        # orders_resp.raise_for_status()
 
         # --- 2) Compute baseline utilities ---
-        item_sales = np.array([m["quantity_sold"] for m in menu_items])
+        item_sales = np.array([m.quantity_sold for m in menu_items])
         item_baseline_util = np.log(item_sales + 1)
         item_baseline_util = item_baseline_util - np.mean(item_baseline_util)
 
         for i, m in enumerate(menu_items):
-            m["baseline_utility"] = item_baseline_util[i]
+            m.baseline_utility = item_baseline_util[i]
 
         # Combos baseline utilities
         if len(combos) > 0:
-            combo_sales = np.array([c["quantity_sold"] for c in combos])
+            combo_sales = np.array([c.quantity_sold for c in combos])
             combo_baseline_util = np.log(combo_sales + 1)
             combo_baseline_util = combo_baseline_util - np.mean(combo_baseline_util)
             for i, c in enumerate(combos):
-                c["baseline_utility"] = combo_baseline_util[i]
+                c.baseline_utility = combo_baseline_util[i]
         else:
             for c in combos:
-                c["baseline_utility"] = 0.0
+                c.baseline_utility = 0.0
 
         # --- 3) Perform a random search to find optimal prices ---
-        base_item_prices = {m["dish_id"]: m["price"] for m in menu_items}
-        base_combo_prices = {c["combo_name"]: c["price"] for c in combos}
+        base_item_prices = {m.dish_id: m.price for m in menu_items}
+        base_combo_prices = {c.combo_name: c.price for c in combos}
         base_prices = {**base_item_prices, **base_combo_prices}
 
         # We'll do a baseline simulation to compare
@@ -117,7 +135,7 @@ def optimize_prices():
         final_customers = create_customers()
         final_profit, final_demand, customers_purchases = simulate(final_customers, menu_items, combos, best_prices)
 
-        dish_ids = [m["dish_id"] for m in menu_items]
+        dish_ids = [m.dish_id for m in menu_items]
         dish_index = {d: i for i, d in enumerate(dish_ids)}
         co_occurrence = np.zeros((len(dish_ids), len(dish_ids)))
 
@@ -140,11 +158,11 @@ def optimize_prices():
         explanation_details = []
 
         for m in menu_items:
-            pid = m["dish_id"]
-            curr_price = m["price"]
+            pid = m.dish_id
+            curr_price = m.price
             opt_price = best_prices[pid]
             demand = final_demand[pid] if pid in final_demand else 0
-            profit = (opt_price - m["cost"]) * demand
+            profit = (opt_price - m.cost) * demand
 
             # Compute elasticity from baseline scenario
             base_q = baseline_demand.get(pid, 0)
@@ -165,7 +183,7 @@ def optimize_prices():
 
             # Build explanation snippet for each item
             reason_snippet = (
-                f"Item {m['name']} (ID: {pid}) changed from ${curr_price:.2f} to ${opt_price:.2f}. "
+                f"Item {m.name} (ID: {pid}) changed from ${curr_price:.2f} to ${opt_price:.2f}. "
                 f"Demand changed from {base_q} to {new_q}, leading to an elasticity of {elasticity}. "
                 f"This indicates {elasticity_label}. "
                 f"Profit impact: ${profit:.2f}."
@@ -175,7 +193,7 @@ def optimize_prices():
 
             results.append({
                 "dish_id": pid,
-                "dish_name": m["name"],
+                "dish_name": m.name,
                 "current_price": round(curr_price, 2),
                 "optimal_price": round(opt_price, 2),
                 "expected_profit": round(profit, 2),
@@ -185,9 +203,9 @@ def optimize_prices():
 
         # Summarize co-occurrence pattern
         if best_pair is not None:
-            itemA = next(x for x in menu_items if x["dish_id"] == best_pair[0])
-            itemB = next(x for x in menu_items if x["dish_id"] == best_pair[1])
-            pair_info = f"The items '{itemA['name']}' and '{itemB['name']}' (IDs: {itemA['dish_id']}, {itemB['dish_id']}) are frequently purchased together (co-occurrence count: {max_co})."
+            itemA = next(x for x in menu_items if x.dish_id == best_pair[0])
+            itemB = next(x for x in menu_items if x.dish_id == best_pair[1])
+            pair_info = f"The items '{itemA.name}' and '{itemB.name}' (IDs: {itemA.dish_id}, {itemB.dish_id}) are frequently purchased together (co-occurrence count: {max_co})."
         else:
             pair_info = "No significant co-occurrence patterns were found."
 
@@ -264,7 +282,7 @@ def scenario_analysis(
         combos = combos_resp.json()
 
         # Compute baseline utilities
-        item_sales = np.array([m["quantity_sold"] for m in menu_items])
+        item_sales = np.array([m.quantity_sold for m in menu_items])
         item_baseline_util = np.log(item_sales + 1)
         item_baseline_util = item_baseline_util - np.mean(item_baseline_util)
         for i, m in enumerate(menu_items):

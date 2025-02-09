@@ -17,17 +17,17 @@ class Customer:
         """
         choice_set = []
         for it in items:
-            product_id = it["dish_id"]
+            product_id = it.dish_id
             price = prices[product_id]
             # Utility is baseline utility + effect from price
-            utility = it["baseline_utility"] + self.price_sensitivity * price
+            utility = it.baseline_utility + self.price_sensitivity * price
             choice_set.append((product_id, price, utility, 'item', [product_id]))
 
         for c in combos:
-            product_id = c["combo_name"]
+            product_id = c.combo_name
             price = prices[product_id]
-            utility = c["baseline_utility"] + self.price_sensitivity * price
-            choice_set.append((product_id, price, utility, 'combo', c["items"]))
+            utility = c.baseline_utility + self.price_sensitivity * price
+            choice_set.append((product_id, price, utility, 'combo', c.items))
 
         demands = {}
         for (pid, price, util, ptype, included_items) in choice_set:
@@ -71,9 +71,9 @@ def simulate(customers, menu_items, combos, prices):
       - total_demand: dict {product_id -> quantity_sold}
       - customers_purchases: list of sets (each set is items the customer ended up with)
     """
-    total_demand = {m["dish_id"]: 0 for m in menu_items}
+    total_demand = {m.dish_id: 0 for m in menu_items}
     for c in combos:
-        total_demand[c["combo_name"]] = 0
+        total_demand[c.combo_name] = 0
     total_profit = 0.0
 
     customers_purchases = []
@@ -82,31 +82,31 @@ def simulate(customers, menu_items, combos, prices):
         cust_demands = cust.choose_items(menu_items, combos, prices)
         # Compute profit
         for pid, q in cust_demands.items():
-            if pid in [m["dish_id"] for m in menu_items]:
-                item_obj = next(x for x in menu_items if x["dish_id"] == pid)
-                cost = item_obj["cost"]
+            if pid in [m.dish_id for m in menu_items]:
+                item_obj = next(x for x in menu_items if x.dish_id == pid)
+                cost = item_obj.cost
                 price = prices[pid]
                 total_profit += (price - cost) * q
                 total_demand[pid] += q
             else:
                 # combo
-                combo_obj = next(x for x in combos if x["combo_name"] == pid)
+                combo_obj = next(x for x in combos if x.combo_name == pid)
                 price = prices[pid]
                 combo_cost = 0.0
-                for item_id in combo_obj["items"]:
-                    it = next(x for x in menu_items if x["dish_id"] == item_id)
-                    combo_cost += it["cost"]
+                for item_id in combo_obj.items:
+                    it = next(x for x in menu_items if x.dish_id == item_id)
+                    combo_cost += it.cost
                 total_profit += (price - combo_cost) * q
                 total_demand[pid] += q
 
         # Track which individual items the customer ends up buying for co-occurrence
         purchased_items = set()
         for pid, q in cust_demands.items():
-            if pid in [m["dish_id"] for m in menu_items]:
+            if pid in [m.dish_id for m in menu_items]:
                 purchased_items.add(pid)
             else:
-                combo_obj = next(x for x in combos if x["combo_name"] == pid)
-                for cid in combo_obj["items"]:
+                combo_obj = next(x for x in combos if x.combo_name == pid)
+                for cid in combo_obj.items:
                     purchased_items.add(cid)
         customers_purchases.append(purchased_items)
 
