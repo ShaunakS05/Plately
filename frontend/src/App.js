@@ -430,7 +430,7 @@ function App() {
                   <Grid item xs={12} md={4}>
                     <Paper elevation={3} sx={{ p: 3, borderRadius: 3 }}>
                       <Typography variant="h6" sx={{ mb: 2 }}>
-                        Top Tokens (Example)
+                        Profit Portions
                       </Typography>
                       <Box sx={{ width: "100%", height: 250 }}>
                         <ResponsiveContainer width="100%" height="100%">
