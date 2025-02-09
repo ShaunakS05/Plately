@@ -397,4 +397,11 @@ def get_orders():
     # Use jsonable_encoder to convert our custom objects into JSON-serializable types.
     return JSONResponse(content=jsonable_encoder(orders))
 
+@app.get("/heatscores/{menu_item_id}")
+def get_heatscores(menu_item_id: str):
+    """
+    API endpoint to return the D3-formatted heat scores for the given menu item.
+    """
+    data = calculate_heat_scores_d3(menu_item_id)
+    return JSONResponse(content=data)
 
