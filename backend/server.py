@@ -215,17 +215,9 @@ Explain to a restaurant manager (in simple terms) why these changes were made, f
 3) How these adjustments lead to an improvement in overall profit.
 """
 
-        response = openai.ChatCompletion.create(
-            model="gpt-3.5-turbo",
-            messages=[
-                {"role": "system", "content": "You are ChatGPT, a helpful AI assistant for restaurant analytics."},
-                {"role": "user", "content": prompt}
-            ],
-            max_tokens=300,
-            temperature=0.7,
-        )
+       
 
-        explanation_text = response.choices[0].message['content']
+        explanation_text = "dsd"
 
         return {
             "baseline_profit": round(baseline_profit, 2),
@@ -395,22 +387,22 @@ def get_heatscores(menu_item_id: str):
     return JSONResponse(content=data)
 
 # ---------------- NEW endpoint to track the most popular item combinations ----------------
-@app.get("/combo-popularity")
+@app.post("/combo-popularity")
 def get_combo_popularity(min_size: int = 2, max_size: int = 2, top_k: int = 5):
     """
     Analyze all orders, look at the co-occurrence of items, and return the most popular 
     combos of size between `min_size` and `max_size`. Default is pairs only (2 to 2).
 
-    Query params:
-    - min_size: minimum combo size (default=2)
-    - max_size: maximum combo size (default=2)
-    - top_k: how many combos to return (default=5)
-
     Returns a JSON object like:
       {
         "top_combos": [
-          {"combo_items": ["AP001", "EN005"], "popularityScore": 45},
-          ...
+          {
+            "combo_items": [
+              {"id": "AP001", "name": "Spring Rolls"},
+              {"id": "EN005", "name": "Orange Chicken"}
+            ],
+            "popularityScore": 45
+          }
         ],
         "min_size": 2,
         "max_size": 2,
@@ -451,8 +443,19 @@ def get_combo_popularity(min_size: int = 2, max_size: int = 2, top_k: int = 5):
 
     results = []
     for combo_set, count in most_common:
+        # Build a list of {id, name} for each dish_id in this combo set
+        items_with_names = []
+        for dish_id in combo_set:
+            # Find this dish_id in menu_items
+            matched_item = next((m for m in menu_items if m.dish_id == dish_id), None)
+            if matched_item:
+                items_with_names.append({"id": dish_id, "name": matched_item.name})
+            else:
+                # Possibly it wasn't in menu_items - handle gracefully
+                items_with_names.append({"id": dish_id, "name": "Unknown"})
+
         results.append({
-            "combo_items": list(combo_set),
+            "combo_items": items_with_names,
             "popularityScore": count
         })
 
