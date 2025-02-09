@@ -399,5 +399,5 @@ def get_orders_by_day(day: str):
 
 @app.get("/heatscores/{menu_item_id}")
 def get_heatscores(menu_item_id: str):
-    data = calculate_heat_scores_d3(menu_item_id)
+    data = calculate_heat_scores_d3(menu_item_id, orders)
     return JSONResponse(content=data)

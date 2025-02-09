@@ -2,9 +2,11 @@ from MenuClasses import MenuItem, Combo, OrderItem, OrderCombo, Order
 from datetime import datetime, timedelta
 import random, requests
 import logging
+from typing import List
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
+
 
 menu_categories = {
     "Appetizers": [
@@ -193,7 +195,7 @@ def fetch_combos():
 
 
 
-def calculate_heat_scores_d3(menu_item_id: str) -> dict:
+def calculate_heat_scores_d3(menu_item_id: str, orders: List[Order]) -> dict:
     """
     Calculate heat score grids in D3 heatmap format for a given menu item across seasons.
     
@@ -252,7 +254,6 @@ def calculate_heat_scores_d3(menu_item_id: str) -> dict:
     season_d3_data = {}
     
     # Use the global orders list.
-    global orders
     
     for season in seasons:
         # Initialize a raw count grid for the current season.
