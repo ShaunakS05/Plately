@@ -3,6 +3,7 @@ from datetime import datetime, timedelta
 import random, requests
 import logging
 from typing import List
+from mongo import fetch_menu_from_mongo
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
@@ -134,7 +135,7 @@ def fetch_menu_items():
         return [MenuItem.model_validate(m) for m in data]
     except Exception as e:
         logger.warning("Failed to fetch menu from Toast API (%s). Using local fake menu data.", e)
-        return generate_fake_menu()
+        return fetch_menu_from_mongo()
 
 def fetch_combos():
     try:

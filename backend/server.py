@@ -52,7 +52,7 @@ app.add_middleware(
 )
 
 # If using OpenAI, provide your API key here
-openai.api_key = ""
+openai.api_key = "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"
 
 
 menu_items = fetch_menu_from_mongo()
@@ -396,7 +396,7 @@ def get_heatscores(menu_item_id: str):
     return JSONResponse(content=data)
 
 # ---------------- NEW endpoint to track the most popular item combinations ----------------
-@app.get("/combo-popularity")
+@app.post("/combo-popularity")
 def get_combo_popularity(min_size: int = 2, max_size: int = 2, top_k: int = 5):
     """
     Analyze all orders, look at the co-occurrence of items, and return the most popular 
