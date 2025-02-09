@@ -388,4 +388,13 @@ def get_orders_by_day(day: str):
 
     return {"day": day, "orders": filtered_orders}
 
+@app.get("/orders")
+def get_orders():
+    """
+    API endpoint to return 50 fake orders.
+    """
+    orders = generate_fake_orders(menu_items, combos, num_orders=50)
+    # Use jsonable_encoder to convert our custom objects into JSON-serializable types.
+    return JSONResponse(content=jsonable_encoder(orders))
+
 

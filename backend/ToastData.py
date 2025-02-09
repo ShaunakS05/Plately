@@ -77,45 +77,92 @@ def get_season(month):
     return "Unkown"
 
 # Generate fake orders
-def generate_fake_orders(menu_items, combos):
+def generate_fake_orders(menu_items, combos, num_orders=55000):
+    """
+    Generate a list of fake orders for testing and analytics.
+    
+    Args:
+        menu_items (list): List of MenuItem objects.
+        combos (list): List of Combo objects.
+        num_orders (int): Number of fake orders to generate.
+
+    Returns:
+        list: A list of Order objects.
+    """
     orders = []
     now = datetime.now()
 
-    for _ in range(random.randint(25, 50)):
-        # Generate a random timestamp within the last 30 days
-        random_offset = random.randint(0, 30 * 24 * 60 * 60)  # Up to 30 days in the past
-        order_time = now - timedelta(seconds=random_offset)
+    possible_guest_names = [
+        "John Doe", "Jane Smith", "Alex Johnson",
+        "Wei Zhang", "Ling Chen", "Chris Brown"
+    ]
+    possible_addresses = [
+        None, "123 Main St", "456 Elm St",
+        "789 Maple Ave", "101 Pine Rd"
+    ]
+    possible_special_instructions = [
+        None, "Extra spicy", "No peanuts",
+        "Gluten-free", "Less salt", "No MSG"
+    ]
+    dining_options = ["dine-in", "takeout", "delivery"]
 
+    for _ in range(num_orders):
+        # 1. Pick a random day within the last 30 days
+        day_offset = random.randint(0, 29)
+        # 2. Pick a random time between 11:00 and 23:00 (11 AM to 11 PM)
+        random_hour = random.randint(11, 23)
+        random_minute = random.randint(0, 59)
+        random_second = random.randint(0, 59)
+
+        # Build the date/time (subtracting 'day_offset' days from 'now')
+        random_date = (now - timedelta(days=day_offset)).date()
+        order_time = datetime(
+            year=random_date.year,
+            month=random_date.month,
+            day=random_date.day,
+            hour=random_hour,
+            minute=random_minute,
+            second=random_second
+        )
+
+        # 3. Determine season and day of the week
         order_season = get_season(order_time.month)
-        order_day = order_time.strftime("%A")
+        order_day = order_time.strftime("%A")  # Monday, Tuesday, etc.
 
-        order_items = [
-            OrderItem(
-                dish_id=item.dish_id,
-                quantity=random.randint(1, 4),
-                special_instructions=random.choice([None, "Extra spicy", "No peanuts", "Gluten-free"]),
+        # 4. Randomly select items
+        selected_items = random.sample(menu_items, random.randint(1, 5))
+        order_items = []
+        for item in selected_items:
+            order_items.append(
+                OrderItem(
+                    dish_id=item.dish_id,
+                    quantity=random.randint(1, 4),
+                    special_instructions=random.choice(possible_special_instructions)
+                )
             )
-            for item in random.sample(menu_items, random.randint(1, 5))
-        ]
 
-        order_combos = [
-            OrderCombo(
-                combo_name=combo.combo_name,
-                quantity=random.randint(1, 2),
+        # 5. Randomly select combos
+        selected_combos = random.sample(combos, random.randint(0, len(combos)))
+        order_combos = []
+        for combo in selected_combos:
+            order_combos.append(
+                OrderCombo(
+                    combo_name=combo.combo_name,
+                    quantity=random.randint(1, 2)
+                )
             )
-            for combo in random.sample(combos, random.randint(0, len(combos)))
-        ]
 
+        # 6. Create the Order object
         order = Order(
-            order_id=f"ORDER{random.randint(10000, 99999)}",
-            dining_option=random.choice(["dine-in", "takeout", "delivery"]),
+            order_id=f"ORDER{random.randint(10000,99999)}",
+            dining_option=random.choice(dining_options),
             items=order_items,
             combos=order_combos if order_combos else None,
-            guest_name=random.choice(["John Doe", "Jane Smith", "Alex Johnson", "Wei Zhang", "Ling Chen"]),
-            delivery_address=random.choice(["123 Main St", "456 Elm St", "789 Maple Ave", None]),
+            guest_name=random.choice(possible_guest_names),
+            delivery_address=random.choice(possible_addresses),
             order_timestamp=order_time.isoformat(),
-            season = order_season,
-            day = order_day
+            season=order_season,
+            day=order_day
         )
         orders.append(order)
 
