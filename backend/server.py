@@ -8,10 +8,14 @@ from customer import simulate
 import random
 import itertools
 import logging
-from ToastData import generate_fake_combos, generate_fake_menu, generate_fake_orders, fetch_menu_items, fetch_combos
+from ToastData import generate_fake_combos, generate_fake_menu, generate_fake_orders, fetch_menu_items, fetch_combos, calculate_heat_scores_d3
 from MenuClasses import Order
 import time, asyncio, requests, logging
 from contextlib import asynccontextmanager
+from fastapi.responses import JSONResponse
+from fastapi.encoders import jsonable_encoder
+
+
 
 
 
