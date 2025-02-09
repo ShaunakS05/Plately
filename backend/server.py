@@ -9,12 +9,13 @@ from customer import simulate
 import random
 import itertools
 import logging
-from ToastData import generate_fake_combos, generate_fake_menu, generate_fake_orders, fetch_menu_items, fetch_combos, calculate_heat_scores_d3
+from ToastData import generate_fake_combos, generate_fake_orders, fetch_menu_items, fetch_combos, calculate_heat_scores_d3
 from MenuClasses import Order
 import time, asyncio
 from contextlib import asynccontextmanager
 from fastapi.responses import JSONResponse
 from fastapi.encoders import jsonable_encoder
+from mongo import fetch_menu_from_mongo
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
@@ -53,8 +54,13 @@ app.add_middleware(
 # If using OpenAI, provide your API key here
 openai.api_key = ""
 
+<<<<<<< HEAD
+
+menu_items = fetch_menu_from_mongo()
+=======
 # Generate or fetch initial data
 menu_items = generate_fake_menu()
+>>>>>>> 8a2bc464675cf4fdf347e58fb701fbf3cb82632b
 combos = generate_fake_combos(menu_items)
 orders = generate_fake_orders(menu_items, combos)
 

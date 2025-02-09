@@ -1,6 +1,6 @@
 import random
 import math
-from segments import SEGMENTS
+from mongo import fetch_segments_from_mongo
 
 class Customer:
     def __init__(self, budget, price_sensitivity):
@@ -56,6 +56,7 @@ def create_customers():
     Create a synthetic population of customers across different segments.
     """
     customers = []
+    SEGMENTS = fetch_segments_from_mongo()
     for seg in SEGMENTS:
         for _ in range(seg["count"]):
             budget = max(5, random.gauss(seg["budget_mean"], seg["budget_std"]))
