@@ -63,6 +63,19 @@ def generate_fake_combos(menu_items):
         Combo(combo_name="Family Special", items=[menu_items[2].dish_id, menu_items[4].dish_id, menu_items[9].dish_id], price=30.00, quantity_sold=random.randint(30, 60)),
     ]
 
+SEASONS = { 
+    "Winter": [12,1,2],
+    "Spring": [3,4,5],
+    "Summer": [6,7,8],
+    "Fall": [9,10,11]
+}
+
+def get_season(month):
+    for season, months in SEASONS.items():
+        if month in months:
+            return season
+    return "Unkown"
+
 # Generate fake orders
 def generate_fake_orders(menu_items, combos):
     orders = []
@@ -72,6 +85,9 @@ def generate_fake_orders(menu_items, combos):
         # Generate a random timestamp within the last 30 days
         random_offset = random.randint(0, 30 * 24 * 60 * 60)  # Up to 30 days in the past
         order_time = now - timedelta(seconds=random_offset)
+
+        order_season = get_season(order_time.month)
+        order_day = order_time.strftime("%A")
 
         order_items = [
             OrderItem(
@@ -97,7 +113,9 @@ def generate_fake_orders(menu_items, combos):
             combos=order_combos if order_combos else None,
             guest_name=random.choice(["John Doe", "Jane Smith", "Alex Johnson", "Wei Zhang", "Ling Chen"]),
             delivery_address=random.choice(["123 Main St", "456 Elm St", "789 Maple Ave", None]),
-            order_timestamp=order_time.isoformat(),  # ✅ Minimal change: Add timestamp
+            order_timestamp=order_time.isoformat(),
+            season = order_season,
+            day = order_day
         )
         orders.append(order)
 

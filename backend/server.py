@@ -351,3 +351,41 @@ def get_order_by_id(order_id: str):
 def create_order(order: Order):
     orders.append(order)
     return {"message": "Order created successfully", "order_id": order.order_id}
+
+@app.get("/order-timestamps", tags=["Orders"])
+def get_order_timestamps():
+    """
+    Returns only the order timestamps from all orders.
+    """
+    return {"timestamps": [order.order_timestamp for order in orders if order.order_timestamp]}
+
+@app.get("/orders/season/{season}", tags=["Orders"])
+def get_orders_by_season(season: str):
+    """
+    Get all orders for a specific season (Winter, Spring, Summer, Fall).
+    Example: /orders/season/Winter
+    """
+    season = season.capitalize()  # Ensure first letter is uppercase
+    filtered_orders = [order for order in orders if order.season == season]
+
+    if not filtered_orders:
+        raise HTTPException(status_code=404, detail=f"No orders found for season: {season}")
+
+    return {"season": season, "orders": filtered_orders}
+
+
+@app.get("/orders/day/{day}", tags=["Orders"])
+def get_orders_by_day(day: str):
+    """
+    Get all orders for a specific day of the week (Monday, Tuesday, etc.).
+    Example: /orders/day/Monday
+    """
+    day = day.capitalize()  # Ensure correct capitalization
+    filtered_orders = [order for order in orders if order.day_of_week == day]
+
+    if not filtered_orders:
+        raise HTTPException(status_code=404, detail=f"No orders found for day: {day}")
+
+    return {"day": day, "orders": filtered_orders}
+
+
